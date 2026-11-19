@@ -26,10 +26,10 @@
   #spk{opacity:.55;transition:opacity .8s}
   #spk.on{opacity:1}
   #spk svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:4px solid #fff;box-shadow:0 0 16px #fff,0 0 30px rgba(255,255,255,.6),inset 0 0 12px rgba(255,255,255,.8);pointer-events:none;animation:spkring 1.3s ease-out forwards}
+  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px #fff,inset 0 0 8px #fff;pointer-events:none;animation:spkring 1.1s cubic-bezier(.2,.7,.3,1) forwards}
   .spk-bub{position:absolute;left:0;top:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.95) 0 16%,rgba(255,255,255,.12) 20% 100%);pointer-events:none;animation:spkbub var(--d) ease-out forwards}
-  @keyframes spkbub{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:0}12%{opacity:1}50%{transform:translate(calc(var(--x0) + var(--wx)),calc(var(--y0) - var(--dy)*.5)) scale(.9)}100%{transform:translate(calc(var(--x0) - var(--wx)*.5),calc(var(--y0) - var(--dy))) scale(1.1);opacity:0}}
-  @keyframes spkring{0%{transform:var(--p) scale(1);opacity:1}60%{opacity:.85}100%{transform:var(--p) scale(6);opacity:0}}
+  @keyframes spkbub{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:1}25%{transform:translate(calc(var(--x0) + var(--wx)),calc(var(--y0) - var(--dy)*.55)) scale(1)}100%{transform:translate(calc(var(--x0) + var(--wx)*1.3),calc(var(--y0) - var(--dy))) scale(1.15);opacity:0}}
+  @keyframes spkring{0%{transform:var(--p) scale(1);opacity:1}85%{opacity:1}100%{transform:var(--p) scale(6);opacity:0}}
   html,body{margin:0;color:var(--text);font-family:'Outfit',system-ui,sans-serif;height:100%}
   body{display:flex;flex-direction:column;min-height:100vh}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -601,13 +601,13 @@ function ring(){
 let bubs=0;
 function bubbles(n){
   const p=spkPos();
-  for(let i=0;i<n&&bubs<16;i++){
-    const b=document.createElement('div'),r=6+Math.random()*12,d=1.8+Math.random()*1.4;
+  for(let i=0;i<n&&bubs<40;i++){
+    const b=document.createElement('div'),r=6+Math.random()*14,d=1.3+Math.random()*1.1;
     b.className='spk-bub';b.style.width=b.style.height=r+'px';
-    b.style.setProperty('--x0',(p.cx-r/2+(Math.random()-.5)*p.w*.6)+'px');
-    b.style.setProperty('--y0',(p.cy-r/2+(Math.random()-.2)*p.h*.4)+'px');
-    b.style.setProperty('--dy',(H*.25+Math.random()*H*.35)+'px');
-    b.style.setProperty('--wx',((Math.random()-.5)*60)+'px');
+    b.style.setProperty('--x0',(p.cx-r/2+(Math.random()-.5)*p.w*.5)+'px');
+    b.style.setProperty('--y0',(p.cy+p.h*.16-r/2)+'px');
+    b.style.setProperty('--dy',(H*.35+Math.random()*H*.4)+'px');
+    b.style.setProperty('--wx',((Math.random()-.5)*W*.7)+'px');
     b.style.setProperty('--d',d+'s');
     world.appendChild(b);bubs++;setTimeout(()=>{b.remove();bubs--;},d*1000+50);
   }
@@ -620,7 +620,7 @@ function step(dt){
   let kick=0;
   if(mu.playing){bassAvg+=(mu.bass-bassAvg)*Math.min(1,dt*2.5);quiet+=dt;
     const hit=mu.bass>bassAvg*1.15+.03&&cool<=0,fill=quiet>.7&&mu.level>.04&&cool<=0;
-    if(hit||fill){kick=hit?Math.min(1,.45+(mu.bass-bassAvg)*5):.35;beat=Math.max(beat,kick);cool=.24;quiet=0;ring();bubbles(hit?2+Math.round(kick*2):1);}}
+    if(hit||fill){kick=hit?Math.min(1,.45+(mu.bass-bassAvg)*5):.35;beat=Math.max(beat,kick);cool=.24;quiet=0;ring();bubbles(hit?4+Math.round(kick*4):2);}}
   djK+=((window.djMode?1:0)-djK)*Math.min(1,dt*2);
   tiltX+=(tTX-tiltX)*Math.min(1,dt*4);tiltY+=(tTY-tiltY)*Math.min(1,dt*4);
   const {sq:S}=sizes(),p=spkPos();
@@ -631,7 +631,7 @@ function step(dt){
   else{tx=W*.5+Math.sin(t*.2)*W*.12+tiltX*W*.3;ty=H*.36+Math.sin(t*.3)*H*.04+tiltY*H*.22;k=.9;}
   vx+=(tx-x)*k*dt;vy+=(ty-y)*k*dt;
   // la cassa spinge il calamaro a ogni colpo
-  if(kick){const dx=x-p.cx,dy=y-p.cy,d=Math.hypot(dx,dy)||1,f=430*kick;vx+=dx/d*f+(Math.random()-.5)*160*kick;vy+=dy/d*f+(Math.random()-.5)*160*kick;}
+  if(kick){const dx=x-p.cx,dy=y-p.cy,d=Math.hypot(dx,dy)||1,f=600*kick;vx+=dx/d*f+(Math.random()-.5)*200*kick;vy+=dy/d*f+(Math.random()-.5)*200*kick;}
   const dec=Math.exp(-1.4*dt);vx*=dec;vy*=dec;x+=vx*dt;y+=vy*dt;
   const m=S*.45;if(x<m){x=m;vx=Math.abs(vx)*.6;}if(x>W-m){x=W-m;vx=-Math.abs(vx)*.6;}
   if(y<m){y=m;vy=Math.abs(vy)*.6;}if(y>H-m){y=H-m;vy=-Math.abs(vy)*.6;}
@@ -642,9 +642,9 @@ function step(dt){
   // cassa
   spk.classList.toggle('on',mu.playing);
   // la cassa salta e trema a tempo
-  const pl=mu.playing?1:0,shx=Math.sin(t*31)*beat*7*pl,shy=-beat*14*pl+Math.sin(t*9)*mu.level*4,srot=(Math.sin(t*19)*beat*.07+Math.sin(t*2.3)*mu.level*.05)*pl;
-  spk.style.transform=`translate3d(${p.cx-p.w/2+shx}px,${p.cy-p.h/2+shy}px,0) rotate(${srot}rad) scale(${1+beat*.1+mu.level*.04},${1-beat*.04+mu.level*.04})`;
-  wf.style.transform=`scale(${1+mu.bass*.3+beat*.2})`;
+  const pl=mu.playing?1:0,shx=Math.sin(t*31)*beat*10*pl,shy=-beat*24*pl+Math.sin(t*9)*mu.level*5,srot=(Math.sin(t*19)*beat*.1+Math.sin(t*2.3)*mu.level*.06)*pl;
+  spk.style.transform=`translate3d(${p.cx-p.w/2+shx}px,${p.cy-p.h/2+shy}px,0) rotate(${srot}rad) scale(${1+beat*.16+mu.level*.05},${1-beat*.06+mu.level*.05})`;
+  wf.style.transform=`scale(${1+mu.bass*.35+beat*.3})`;
   tw.style.transform=`scale(${1+mu.level*.5+beat*.15})`;
   led.setAttribute('fill',mu.playing?(beat>.3?'#ffd166':'#ff7a45'):'#333');
 }
