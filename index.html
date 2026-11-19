@@ -26,10 +26,11 @@
   #spk{opacity:.55;transition:opacity .8s}
   #spk.on{opacity:1}
   #spk svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-  .spk-ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.75);box-shadow:0 0 6px rgba(255,255,255,.45);transform:translate(-50%,-50%);pointer-events:none;animation:spkring 1.8s cubic-bezier(.15,.6,.35,1) forwards}
+  .spk-ring{position:absolute;border-radius:50%;border:3px solid rgba(190,240,255,.85);box-shadow:0 0 14px rgba(150,220,255,.5);will-change:transform,opacity;pointer-events:none;animation:spkring 1.5s ease-out forwards}
+  .spk-ring.r2{border-color:rgba(255,255,255,.6);animation-delay:.14s;opacity:0}
   .spk-bub{position:absolute;left:0;top:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.95) 0 16%,rgba(255,255,255,.12) 20% 100%);pointer-events:none;animation:spkbub var(--d) ease-out forwards}
   @keyframes spkbub{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:1}25%{transform:translate(calc(var(--x0) + var(--wx)),calc(var(--y0) - var(--dy)*.55)) scale(1)}100%{transform:translate(calc(var(--x0) + var(--wx)*1.3),calc(var(--y0) - var(--dy))) scale(1.15);opacity:0}}
-  @keyframes spkring{0%{width:var(--s0);height:var(--s0);opacity:.9}35%{opacity:.7}100%{width:var(--s1);height:var(--s1);opacity:0}}
+  @keyframes spkring{0%{transform:translate(-50%,-50%) scale(.08);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
   html,body{margin:0;color:var(--text);font-family:'Outfit',system-ui,sans-serif;height:100%}
   body{display:flex;flex-direction:column;min-height:100vh}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -552,7 +553,7 @@ const world=document.getElementById('world'),sq=document.getElementById('sq'),sp
 const tw=document.getElementById('spkTw'),wf=document.getElementById('spkWf'),led=document.getElementById('spkLed');
 let W=innerWidth,H=innerHeight,t=0,last=0,running=true,raf=0;
 let x=W*.5,y=H*.4,vx=0,vy=0,beat=0,bassAvg=0,cool=0,quiet=0,djK=0,rings=0;
-let tiltX=0,tiltY=0,tTX=0,tTY=0,tBase=null;
+let tiltX=0,tiltY=0,tTX=0,tTY=0,tBase=null,lastS=0,lastLed='';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function sizes(){
   const n=Math.min(H*.13,W*.26,115),d=Math.min(H*.28,W*.52,240);
@@ -585,7 +586,7 @@ let skyKey='';
 function paintSky(){
   const [n,du]=skyNow(),key=n.toFixed(2)+du.toFixed(2);if(key===skyKey)return;skyKey=key;
   const c=[0,1,2].map(i=>rgb(mixA(mixA(hex(SKY.day[i]),hex(SKY.night[i]),n),hex(SKY.dusk[i]),du*.75)));
-  document.documentElement.style.background=`linear-gradient(180deg,${c[0]} 0%,${c[1]} 55%,${c[2]} 100%) fixed`;
+  document.documentElement.style.background=`linear-gradient(180deg,${c[0]} 0%,${c[1]} 55%,${c[2]} 100%)`;
   document.documentElement.style.backgroundColor=c[2];
   try{document.querySelector('meta[name=theme-color]').setAttribute('content',c[0]);}catch(e){}
 }
@@ -593,17 +594,19 @@ paintSky();setInterval(paintSky,20000);
 window.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#logoBtn'))setTimeout(()=>{skyKey='';paintSky();},0);});
 
 function ring(){
-  if(rings>=5)return;const p=spkPos(),r=document.createElement('div'),s=p.w*.7;
-  r.className='spk-ring';r.style.left=p.cx+'px';r.style.top=(p.cy+p.h*.16)+'px';r.style.setProperty('--s0',s+'px');r.style.setProperty('--s1',(s*10)+'px');
-  world.appendChild(r);rings++;setTimeout(()=>{r.remove();rings--;},1850);
+  if(rings>=3)return;const p=spkPos(),S=Math.round(p.w*.7*10);
+  for(const c of ['spk-ring','spk-ring r2']){const r=document.createElement('div');r.className=c;
+    r.style.width=r.style.height=S+'px';r.style.left=p.cx+'px';r.style.top=(p.cy+p.h*.16)+'px';
+    world.appendChild(r);setTimeout(()=>r.remove(),1750);}
+  rings++;setTimeout(()=>rings--,1750);
 }
 
 let bubs=0;
 function bubbles(n){
   const p=spkPos();
-  for(let i=0;i<n&&bubs<40;i++){
+  for(let i=0;i<n&&bubs<24;i++){
     const b=document.createElement('div'),r=6+Math.random()*14,d=1.3+Math.random()*1.1;
-    b.className='spk-bub';b.style.width=b.style.height=r+'px';
+    b.className='spk-bub';b.style.willChange='transform,opacity';b.style.width=b.style.height=r+'px';
     b.style.setProperty('--x0',(p.cx-r/2+(Math.random()-.5)*p.w*.5)+'px');
     b.style.setProperty('--y0',(p.cy+p.h*.16-r/2)+'px');
     b.style.setProperty('--dy',(H*.35+Math.random()*H*.4)+'px');
@@ -637,7 +640,7 @@ function step(dt){
   if(y<m){y=m;vy=Math.abs(vy)*.6;}if(y>H-m){y=H-m;vy=-Math.abs(vy)*.6;}
   const rot=clamp(vx*.0012,-.35,.35)+(mu.playing?Math.sin(t*5)*.05*(.4+mu.level*2):Math.sin(t*1.1)*.04);
   const sc=1+beat*.08+Math.sin(t*2.2)*.015;
-  sq.style.width=S+'px';
+  if(Math.abs(S-lastS)>.5){sq.style.width=S+'px';lastS=S;}
   sq.style.transform=`translate3d(${x-S/2}px,${y-S*.55}px,0) rotate(${rot}rad) scale(${sc})`;
   // cassa
   spk.classList.toggle('on',mu.playing);
@@ -646,7 +649,7 @@ function step(dt){
   spk.style.transform=`translate3d(${p.cx-p.w/2+shx}px,${p.cy-p.h/2+shy}px,0) rotate(${srot}rad) scale(${1+beat*.16+mu.level*.05},${1-beat*.06+mu.level*.05})`;
   wf.style.transform=`scale(${1+mu.bass*.35+beat*.3})`;
   tw.style.transform=`scale(${1+mu.level*.5+beat*.15})`;
-  led.setAttribute('fill',mu.playing?(beat>.3?'#ffd166':'#ff7a45'):'#333');
+  const lc=mu.playing?(beat>.3?'#ffd166':'#ff7a45'):'#333';if(lc!==lastLed){led.setAttribute('fill',lc);lastLed=lc;}
 }
 function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;if(!running)return;step(dt);raf=requestAnimationFrame(frame);}
 function start(){if(raf)cancelAnimationFrame(raf);running=true;last=performance.now();raf=requestAnimationFrame(frame);}
