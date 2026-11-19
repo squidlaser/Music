@@ -26,8 +26,10 @@
   #spk{opacity:.55;transition:opacity .8s}
   #spk.on{opacity:1}
   #spk svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:3px solid rgba(255,255,255,.95);box-shadow:0 0 18px rgba(255,170,110,.9),inset 0 0 14px rgba(255,170,110,.7);pointer-events:none;animation:spkring 1.3s ease-out forwards}
-  @keyframes spkring{from{transform:var(--p) scale(1);opacity:1}to{transform:var(--p) scale(6);opacity:0}}
+  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:4px solid #fff;box-shadow:0 0 16px #fff,0 0 30px rgba(255,255,255,.6),inset 0 0 12px rgba(255,255,255,.8);pointer-events:none;animation:spkring 1.3s ease-out forwards}
+  .spk-bub{position:absolute;left:0;top:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.95) 0 16%,rgba(255,255,255,.12) 20% 100%);pointer-events:none;animation:spkbub var(--d) ease-out forwards}
+  @keyframes spkbub{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:0}12%{opacity:1}50%{transform:translate(calc(var(--x0) + var(--wx)),calc(var(--y0) - var(--dy)*.5)) scale(.9)}100%{transform:translate(calc(var(--x0) - var(--wx)*.5),calc(var(--y0) - var(--dy))) scale(1.1);opacity:0}}
+  @keyframes spkring{0%{transform:var(--p) scale(1);opacity:1}60%{opacity:.85}100%{transform:var(--p) scale(6);opacity:0}}
   html,body{margin:0;color:var(--text);font-family:'Outfit',system-ui,sans-serif;height:100%}
   body{display:flex;flex-direction:column;min-height:100vh}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -596,6 +598,20 @@ function ring(){
   world.appendChild(r);rings++;setTimeout(()=>{r.remove();rings--;},1350);
 }
 
+let bubs=0;
+function bubbles(n){
+  const p=spkPos();
+  for(let i=0;i<n&&bubs<16;i++){
+    const b=document.createElement('div'),r=6+Math.random()*12,d=1.8+Math.random()*1.4;
+    b.className='spk-bub';b.style.width=b.style.height=r+'px';
+    b.style.setProperty('--x0',(p.cx-r/2+(Math.random()-.5)*p.w*.6)+'px');
+    b.style.setProperty('--y0',(p.cy-r/2+(Math.random()-.2)*p.h*.4)+'px');
+    b.style.setProperty('--dy',(H*.25+Math.random()*H*.35)+'px');
+    b.style.setProperty('--wx',((Math.random()-.5)*60)+'px');
+    b.style.setProperty('--d',d+'s');
+    world.appendChild(b);bubs++;setTimeout(()=>{b.remove();bubs--;},d*1000+50);
+  }
+}
 function step(dt){
   t+=dt;
   const mu=(window.musicFx&&window.musicFx.read())||{level:0,bass:0,playing:false};
@@ -604,7 +620,7 @@ function step(dt){
   let kick=0;
   if(mu.playing){bassAvg+=(mu.bass-bassAvg)*Math.min(1,dt*2.5);quiet+=dt;
     const hit=mu.bass>bassAvg*1.15+.03&&cool<=0,fill=quiet>.7&&mu.level>.04&&cool<=0;
-    if(hit||fill){kick=hit?Math.min(1,.45+(mu.bass-bassAvg)*5):.35;beat=Math.max(beat,kick);cool=.24;quiet=0;ring();}}
+    if(hit||fill){kick=hit?Math.min(1,.45+(mu.bass-bassAvg)*5):.35;beat=Math.max(beat,kick);cool=.24;quiet=0;ring();bubbles(hit?2+Math.round(kick*2):1);}}
   djK+=((window.djMode?1:0)-djK)*Math.min(1,dt*2);
   tiltX+=(tTX-tiltX)*Math.min(1,dt*4);tiltY+=(tTY-tiltY)*Math.min(1,dt*4);
   const {sq:S}=sizes(),p=spkPos();
