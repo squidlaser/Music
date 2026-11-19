@@ -26,8 +26,8 @@
   #spk{opacity:.55;transition:opacity .8s}
   #spk.on{opacity:1}
   #spk svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:2px solid rgba(255,255,255,.35);pointer-events:none;animation:spkring 1.3s ease-out forwards}
-  @keyframes spkring{from{transform:var(--p) scale(1);opacity:.9}to{transform:var(--p) scale(5);opacity:0}}
+  .spk-ring{position:absolute;left:0;top:0;border-radius:50%;border:3px solid rgba(255,255,255,.95);box-shadow:0 0 18px rgba(255,170,110,.9),inset 0 0 14px rgba(255,170,110,.7);pointer-events:none;animation:spkring 1.3s ease-out forwards}
+  @keyframes spkring{from{transform:var(--p) scale(1);opacity:1}to{transform:var(--p) scale(6);opacity:0}}
   html,body{margin:0;color:var(--text);font-family:'Outfit',system-ui,sans-serif;height:100%}
   body{display:flex;flex-direction:column;min-height:100vh}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -553,8 +553,8 @@ let x=W*.5,y=H*.4,vx=0,vy=0,beat=0,bassAvg=0,cool=0,quiet=0,djK=0,rings=0;
 let tiltX=0,tiltY=0,tTX=0,tTY=0,tBase=null;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function sizes(){
-  const n=Math.min(H*.2,W*.38,170),d=Math.min(H*.4,W*.75,360);
-  return {sq:n+(d-n)*djK,spW:Math.min(W*.3,120)};
+  const n=Math.min(H*.13,W*.26,115),d=Math.min(H*.28,W*.52,240);
+  return {sq:n+(d-n)*djK,spW:Math.min(W*.42,165)};
 }
 function spkPos(){const {spW}=sizes();return {cx:W*.5,cy:H*.58,w:spW,h:spW*170/120};}
 function layout(){W=innerWidth;H=innerHeight;const p=spkPos();
@@ -591,8 +591,8 @@ paintSky();setInterval(paintSky,20000);
 window.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#logoBtn'))setTimeout(()=>{skyKey='';paintSky();},0);});
 
 function ring(){
-  if(rings>=3)return;const p=spkPos(),r=document.createElement('div'),s=p.w*.7;
-  r.className='spk-ring';r.style.width=r.style.height=s+'px';r.style.setProperty('--p',`translate(${p.cx-s/2}px,${p.cy+p.h*.15-s/2}px)`);
+  if(rings>=4)return;const p=spkPos(),r=document.createElement('div'),s=p.w*.7;
+  r.className='spk-ring';r.style.width=r.style.height=s+'px';r.style.setProperty('--p',`translate(${p.cx-s/2}px,${p.cy+p.h*.16-s/2}px)`);
   world.appendChild(r);rings++;setTimeout(()=>{r.remove();rings--;},1350);
 }
 
@@ -615,7 +615,7 @@ function step(dt){
   else{tx=W*.5+Math.sin(t*.2)*W*.12+tiltX*W*.3;ty=H*.36+Math.sin(t*.3)*H*.04+tiltY*H*.22;k=.9;}
   vx+=(tx-x)*k*dt;vy+=(ty-y)*k*dt;
   // la cassa spinge il calamaro a ogni colpo
-  if(kick){const dx=x-p.cx,dy=y-p.cy,d=Math.hypot(dx,dy)||1,f=260*kick;vx+=dx/d*f+(Math.random()-.5)*120*kick;vy+=dy/d*f+(Math.random()-.5)*120*kick;}
+  if(kick){const dx=x-p.cx,dy=y-p.cy,d=Math.hypot(dx,dy)||1,f=430*kick;vx+=dx/d*f+(Math.random()-.5)*160*kick;vy+=dy/d*f+(Math.random()-.5)*160*kick;}
   const dec=Math.exp(-1.4*dt);vx*=dec;vy*=dec;x+=vx*dt;y+=vy*dt;
   const m=S*.45;if(x<m){x=m;vx=Math.abs(vx)*.6;}if(x>W-m){x=W-m;vx=-Math.abs(vx)*.6;}
   if(y<m){y=m;vy=Math.abs(vy)*.6;}if(y>H-m){y=H-m;vy=-Math.abs(vy)*.6;}
@@ -625,9 +625,11 @@ function step(dt){
   sq.style.transform=`translate3d(${x-S/2}px,${y-S*.55}px,0) rotate(${rot}rad) scale(${sc})`;
   // cassa
   spk.classList.toggle('on',mu.playing);
-  spk.style.transform=`translate3d(${p.cx-p.w/2}px,${p.cy-p.h/2}px,0) scale(${1+beat*.05})`;
-  wf.style.transform=`scale(${1+mu.bass*.18+beat*.1})`;
-  tw.style.transform=`scale(${1+mu.level*.35})`;
+  // la cassa salta e trema a tempo
+  const pl=mu.playing?1:0,shx=Math.sin(t*31)*beat*7*pl,shy=-beat*14*pl+Math.sin(t*9)*mu.level*4,srot=(Math.sin(t*19)*beat*.07+Math.sin(t*2.3)*mu.level*.05)*pl;
+  spk.style.transform=`translate3d(${p.cx-p.w/2+shx}px,${p.cy-p.h/2+shy}px,0) rotate(${srot}rad) scale(${1+beat*.1+mu.level*.04},${1-beat*.04+mu.level*.04})`;
+  wf.style.transform=`scale(${1+mu.bass*.3+beat*.2})`;
+  tw.style.transform=`scale(${1+mu.level*.5+beat*.15})`;
   led.setAttribute('fill',mu.playing?(beat>.3?'#ffd166':'#ff7a45'):'#333');
 }
 function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;if(!running)return;step(dt);raf=requestAnimationFrame(frame);}
