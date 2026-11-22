@@ -121,6 +121,12 @@
   .ripple{position:fixed;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:2px solid rgba(190,240,255,.85);box-shadow:0 0 12px rgba(150,220,255,.5);pointer-events:none;z-index:50;animation:rip .75s ease-out forwards}
   .ripple.r2{animation-delay:.12s;opacity:0;border-color:rgba(255,255,255,.6)}
   @keyframes rip{0%{transform:scale(.3);opacity:1}100%{transform:scale(8);opacity:0;border-width:.5px}}
+  /* righe più corte: su schermi larghi tutto resta in una colonna centrale */
+  header,.tabs,main{width:100%;max-width:620px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+  .search{width:calc(100% - 36px);max-width:584px;margin:0 auto 10px;box-sizing:border-box}
+  .player{left:50%!important;right:auto!important;transform:translateX(-50%);width:calc(100% - 16px);max-width:604px;box-sizing:border-box}
+  .sheet{max-width:620px;margin:0 auto}
+  .dj-bottom{max-width:620px;margin:0 auto}
 </style>
 </head>
 <body>
@@ -671,7 +677,7 @@ function loadSettings(){try{const s=JSON.parse(localStorage.getItem('mm-settings
 const world=document.getElementById('world'),sq=document.getElementById('sq'),spk=document.getElementById('spk');
 const tw=document.getElementById('spkTw'),wf=document.getElementById('spkWf'),led=document.getElementById('spkLed');
 let W=innerWidth,H=innerHeight,t=0,last=0,running=true,raf=0;
-let x=W*.5,y=H*.4,vx=0,vy=0,beat=0,bassAvg=0,cool=0,quiet=0,djK=0,rings=0,prevBass=0,fluxAvg=0,pump=0;
+let x=W*.5,y=H*.4,vx=0,vy=0,beat=0,bassAvg=0,cool=0,quiet=0,djK=0,rings=0,prevBass=0,fluxAvg=0,pump=0,spin=0,spinV=0,spinDir=1;
 let tiltX=0,tiltY=0,tTX=0,tTY=0,tBase=null,lastS=0,lastLed='';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function sizes(){
@@ -721,10 +727,10 @@ function paintSky(){
 paintSky();setInterval(paintSky,20000);
 window.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#logoBtn'))setTimeout(()=>{skyKey='';paintSky();},0);});
 
-function ring(){
-  if(rings>=4)return;const p=spkPos(),S=Math.round(p.w*.7*10);
+function ring(pw=1){
+  if(rings>=4)return;const p=spkPos(),S=Math.round(p.w*.7*(5+pw*7));
   for(const c of ['spk-ring','spk-ring r2']){const r=document.createElement('div');r.className=c;
-    r.style.width=r.style.height=S+'px';r.style.left=p.cx+'px';r.style.top=(p.cy+p.h*.16)+'px';
+    r.style.width=r.style.height=S+'px';r.style.left=p.cx+'px';r.style.top=(p.cy+p.h*.16)+'px';r.style.borderWidth=(1.5+pw*1.5).toFixed(1)+'px';
     world.appendChild(r);setTimeout(()=>r.remove(),1750);}
   rings++;setTimeout(()=>rings--,1750);
 }
@@ -754,7 +760,7 @@ function step(dt){
   if(mu.playing){bassAvg+=(mu.bass-bassAvg)*Math.min(1,dt*2.5);quiet+=dt;
     const flux=Math.max(0,mu.kick-prevBass);fluxAvg+=(flux-fluxAvg)*Math.min(1,dt*3);
     const hit=flux>fluxAvg*2.5+.03&&mu.kick>.3&&cool<=0,fill=quiet>2&&mu.level>.04&&cool<=0;
-    if(hit||fill){kick=hit?Math.min(1,.5+flux*4):.3;beat=Math.max(beat,kick);pump=Math.max(pump,kick);cool=.3;quiet=0;ring();bubbles(hit?4+Math.round(kick*4):2);}
+    if(hit||fill){kick=hit?Math.min(1,.5+flux*4):.3;beat=Math.max(beat,kick);pump=Math.max(pump,kick);cool=.3;quiet=0;ring(kick);bubbles(hit?4+Math.round(kick*4):2);}
     pump=Math.max(pump,Math.min(1,(mu.bass-bassAvg)*2.5));}
   prevBass=mu.kick||0;
   djK+=((window.djMode?1:0)-djK)*Math.min(1,dt*2);
@@ -771,7 +777,13 @@ function step(dt){
   const dec=Math.exp(-1.4*dt);vx*=dec;vy*=dec;x+=vx*dt;y+=vy*dt;
   const m=S*.45;if(x<m){x=m;vx=Math.abs(vx)*.6;}if(x>W-m){x=W-m;vx=-Math.abs(vx)*.6;}
   if(y<m){y=m;vy=Math.abs(vy)*.6;}if(y>H-m){y=H-m;vy=-Math.abs(vy)*.6;}
-  const rot=clamp(vx*.0012,-.35,.35)+(mu.playing?Math.sin(t*5)*.05*(.4+mu.level*2):Math.sin(t*1.1)*.04);
+  // il calamaro rotea: con la musica gira, ogni colpo gli dà una spinta in più
+  // a tempo: a ogni colpo fa uno scatto di un quarto di giro (un giro intero ogni 4 colpi)
+  // gira di continuo; più è forte l'onda, più forte è la spinta (onde deboli = spintarella, onde forti = giravolta)
+  if(kick){spinV+=spinDir*kick*kick*7;if(Math.random()<.12)spinDir*=-1;}
+  if(mu.playing){const base=spinDir*(.35+mu.level*1.1);spinV+=(base-spinV)*Math.min(1,dt*1.4);spin+=spinV*dt;}
+  else{spinV*=Math.exp(-3*dt);spin+=spinV*dt;const up=Math.round(spin/(Math.PI*2))*Math.PI*2;spin+=(up-spin)*Math.min(1,dt*2);}   // senza musica torna dritto
+  const rot=spin+clamp(vx*.0012,-.35,.35)+(mu.playing?0:Math.sin(t*1.1)*.04);
   const sc=1+beat*.08+Math.sin(t*2.2)*.015;
   if(Math.abs(S-lastS)>.5){sq.style.width=S+'px';lastS=S;}
   sq.style.transform=`translate3d(${x-S/2}px,${y-S*.55}px,0) rotate(${rot}rad) scale(${sc})`;
