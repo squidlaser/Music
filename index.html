@@ -21,12 +21,13 @@
   html{background:#0b4f80}
   body{background:transparent}
 
-  #world{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+  #sky{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:-2;pointer-events:none;background:#0b4f80}
+  #world{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
   #sq,#spk{position:absolute;left:0;top:0;will-change:transform}
   #spk{opacity:.55;transition:opacity .8s}
   #spk.on{opacity:1}
   #spk svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-  .spk-ring{position:absolute;border-radius:50%;border:3px solid rgba(190,240,255,.85);box-shadow:0 0 14px rgba(150,220,255,.5);will-change:transform,opacity;pointer-events:none;animation:spkring 1.5s ease-out forwards}
+  .spk-ring{position:absolute;border-radius:50%;border:3px solid rgba(190,240,255,.85);box-shadow:0 0 8px rgba(150,220,255,.45);pointer-events:none;animation:spkring 1.5s ease-out forwards}
   .spk-ring.r2{border-color:rgba(255,255,255,.6);animation-delay:.14s;opacity:0}
   .spk-bub{position:absolute;left:0;top:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.9);background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.95) 0 16%,rgba(255,255,255,.12) 20% 100%);pointer-events:none;animation:spkbub var(--d) ease-out forwards}
   @keyframes spkbub{0%{transform:translate(var(--x0),var(--y0)) scale(.3);opacity:1}25%{transform:translate(calc(var(--x0) + var(--wx)),calc(var(--y0) - var(--dy)*.55)) scale(1)}100%{transform:translate(calc(var(--x0) + var(--wx)*1.3),calc(var(--y0) - var(--dy))) scale(1.15);opacity:0}}
@@ -130,7 +131,7 @@
 </style>
 </head>
 <body>
-<div id="world"><div id="spk"><svg id="spkSvg" viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+<div id="sky"></div><div id="world"><div id="spk"><svg id="spkSvg" viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
   <rect x="4" y="4" width="112" height="162" rx="26" fill="#0b0b0d"/>
   <rect x="4" y="4" width="112" height="162" rx="26" fill="none" stroke="#1d1f26" stroke-width="3"/>
   <circle id="spkLed" cx="96" cy="22" r="4" fill="#333"/>
@@ -720,15 +721,16 @@ function paintSky(){
   // la copertina sta sopra il cielo, mezza trasparente
   // la copertina si vede nitida, con il colore del cielo sopra in trasparenza
   const al=.35+.3*n;
-  document.documentElement.style.background=coverBg?`linear-gradient(180deg,${rgba(ca[0],al)} 0%,${rgba(ca[1],al+.05)} 55%,${rgba(ca[2],al+.15)} 100%),url(${coverBg}) center/cover no-repeat,${c[2]}`:sky;
-  document.documentElement.style.backgroundColor=c[2];
+  const skyEl=document.getElementById('sky');
+  skyEl.style.background=coverBg?`linear-gradient(180deg,${rgba(ca[0],al)} 0%,${rgba(ca[1],al+.05)} 55%,${rgba(ca[2],al+.15)} 100%),url(${coverBg}) center/cover no-repeat,${c[2]}`:sky;
+  skyEl.style.backgroundColor=c[2];document.documentElement.style.background=c[2];
   try{document.querySelector('meta[name=theme-color]').setAttribute('content',c[0]);}catch(e){}
 }
 paintSky();setInterval(paintSky,20000);
 window.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#logoBtn'))setTimeout(()=>{skyKey='';paintSky();},0);});
 
 function ring(pw=1){
-  if(rings>=4)return;const p=spkPos(),S=Math.round(p.w*.7*(5+pw*7));
+  if(rings>=3)return;const p=spkPos(),S=Math.round(Math.min(p.w*.7*(5+pw*7),Math.max(W,H)*1.3));
   for(const c of ['spk-ring','spk-ring r2']){const r=document.createElement('div');r.className=c;
     r.style.width=r.style.height=S+'px';r.style.left=p.cx+'px';r.style.top=(p.cy+p.h*.16)+'px';r.style.borderWidth=(1.5+pw*1.5).toFixed(1)+'px';
     world.appendChild(r);setTimeout(()=>r.remove(),1750);}
@@ -796,7 +798,7 @@ function step(dt){
   tw.style.transform=`scale(${1+mu.level*.5+beat*.15})`;
   const lc=mu.playing?(beat>.3?'#ffd166':'#ff7a45'):'#333';if(lc!==lastLed){led.setAttribute('fill',lc);lastLed=lc;}
 }
-function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;if(!running)return;step(dt);raf=requestAnimationFrame(frame);}
+function frame(now){let dt=(now-last)/1000||0;last=now;if(!running)return;if(dt>.25)dt=0;else dt=Math.min(.04,dt);step(dt);raf=requestAnimationFrame(frame);}
 function start(){if(raf)cancelAnimationFrame(raf);running=true;last=performance.now();raf=requestAnimationFrame(frame);}
 function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;}
 
