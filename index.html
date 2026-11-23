@@ -588,11 +588,13 @@ async function djEnter(){
   window.djMode=true;document.body.classList.add('dj-on');closeSheet();djUpdate();djWake();
   try{const el=document.documentElement;if(el.requestFullscreen)await el.requestFullscreen();}catch(e){}
   try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}  // schermo sempre acceso
+  try{if(window.AndroidApp)AndroidApp.keepScreenOn(true);}catch(e){}
 }
 function djExit(){
   window.djMode=false;document.body.classList.remove('dj-on');clearTimeout(djIdleT);
   try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}
   try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}
+  try{if(window.AndroidApp)AndroidApp.keepScreenOn(false);}catch(e){}
 }
 $('djBtn').onclick=djEnter;
 $('djExit').onclick=e=>{e.stopPropagation();djExit();};
@@ -811,7 +813,7 @@ layout();step(0);btn.classList.toggle('off',!on);if(on)start();
 })();
 </script>
 <script>
-if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&location.hostname!=='appassets.androidplatform.net'){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
 </script>
 </body>
 </html>

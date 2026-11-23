@@ -1,0 +1,47 @@
+# Costruisce l'app Android (APK) ogni volta che l'app cambia,
+# e la mette nella pagina "Releases" del repository.
+name: Costruisci APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'manifest.json', '*.png', 'android/**', '.github/workflows/apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Metti i file dell'app dentro l'APK
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp index.html manifest.json *.png android/app/src/main/assets/www/
+
+      - name: Costruisci
+        working-directory: android
+        run: gradle assembleRelease --no-daemon -Pvc=${{ github.run_number }}
+
+      - name: Pubblica nella pagina Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk LaMiaMusica.apk
+          TAG="v1.${{ github.run_number }}"
+          gh release create "$TAG" LaMiaMusica.apk \
+            --title "La mia musica $TAG" \
+            --notes "Scarica **LaMiaMusica.apk** e aprilo sul telefono per installare o aggiornare l'app." \
+            --latest

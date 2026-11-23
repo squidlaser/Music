@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+def vc = Integer.parseInt((project.findProperty('vc') ?: '1').toString())
+
+android {
+    namespace 'com.squidlaser.musica'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.squidlaser.musica'
+        minSdk 24
+        targetSdk 34
+        versionCode vc
+        versionName "1.${vc}"
+    }
+
+    // sempre la stessa firma: così ogni nuova versione si installa sopra la vecchia senza perdere i brani
+    signingConfigs {
+        calamaro {
+            storeFile file('calamaro.jks')
+            storePassword 'calamaro'
+            keyAlias 'calamaro'
+            keyPassword 'calamaro'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.calamaro
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
