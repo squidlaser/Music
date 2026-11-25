@@ -53,9 +53,6 @@
   .dj-sub{color:#c9d8ea;font-size:14px;margin-top:2px;text-shadow:0 2px 10px #000}
   .dj-ctrls{display:flex;justify-content:center;align-items:center;gap:26px;margin-top:14px}
   .dj-ctrls .ic{color:#fff}
-  .lowfx .player,.lowfx .tab,.lowfx .empty{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-  .lowfx .player{background:rgba(8,28,52,.93)}
-  .lowfx header,.lowfx .tabs,.lowfx .search,.lowfx main,.lowfx .player{filter:none!important}
   .logo img{height:52px;width:auto;filter:drop-shadow(0 3px 8px #0009);animation:float 3.2s ease-in-out infinite;transform-origin:50% 80%}
   @keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
   .hdr-r{display:flex;gap:8px;align-items:center}
@@ -64,6 +61,9 @@
   .set-row label{display:flex;justify-content:space-between;font-weight:500;margin-bottom:8px}
   .set-row label span{color:var(--accent)}
   .set-row input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:9px 4px;border-radius:10px;background:var(--panel2);color:var(--muted);font-weight:500;font-size:14px}
+  .seg button.on{background:var(--accent);color:#1a0d06}
   .set-row .hint{color:var(--muted);font-size:12px;margin-top:4px}
   .fx-btn{width:40px;height:40px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-size:18px}
   .fx-btn.off{opacity:.45}
@@ -304,7 +304,8 @@ async function removeTests(){
 }
 
 /* ---------- Impostazioni ---------- */
-window.mmSettings={blur:1.5,spk:1};
+window.mmSettings={blur:1.5,spk:1,res:'mid'};
+const RES={low:{w:360,bub:10,name:'Bassa'},mid:{w:540,bub:18,name:'Media'},high:{w:900,bub:24,name:'Alta'},max:{w:0,bub:30,name:'Massima'}};
 try{Object.assign(window.mmSettings,JSON.parse(localStorage.getItem('mm-set')||'{}'));}catch(e){}
 function saveSettingsMM(){try{localStorage.setItem('mm-set',JSON.stringify(window.mmSettings));}catch(e){}}
 let setT=null;
@@ -314,13 +315,19 @@ function openSettings(){
     <div class="set-row"><label>Sfocatura copertina <span id="vBlur">${S.blur===0?'nitida':S.blur+' px'}</span></label>
       <input type="range" id="sBlur" min="0" max="12" step="0.5" value="${S.blur}">
       <div class="hint">Quanto è sfocata la copertina dello sfondo.</div></div>
+    <div class="set-row"><label>Risoluzione <span id="vRes">${RES[S.res].name}</span></label>
+      <div class="seg" id="sRes">${Object.keys(RES).map(k=>`<button data-r="${k}" class="${S.res===k?'on':''}">${RES[k].name}</button>`).join('')}</div>
+      <div class="hint">Più alta = sfondo più definito e più bolle, ma più lavoro per il telefono.</div></div>
     <div class="set-row"><label>Grandezza cassa <span id="vSpk">${Math.round(S.spk*100)}%</span></label>
       <input type="range" id="sSpk" min="0.5" max="1.6" step="0.05" value="${S.spk}"></div>
     <div class="actions"><button class="pill" id="sReset">Ripristina</button><button class="pill accent" id="sOk">Fatto</button></div>`);
   $('sBlur').oninput=e=>{S.blur=+e.target.value;$('vBlur').textContent=S.blur===0?'nitida':S.blur+' px';saveSettingsMM();
     clearTimeout(setT);setT=setTimeout(()=>{const s=songs.find(x=>x.id===queue[qi]);if(s)updateCoverBg(s);},120);};
   $('sSpk').oninput=e=>{S.spk=+e.target.value;$('vSpk').textContent=Math.round(S.spk*100)+'%';saveSettingsMM();if(window.mmRelayout)window.mmRelayout();};
-  $('sReset').onclick=()=>{S.blur=1.5;S.spk=1;saveSettingsMM();if(window.mmRelayout)window.mmRelayout();
+  $('sRes').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.res=b.dataset.r;saveSettingsMM();
+    $('sRes').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));$('vRes').textContent=RES[S.res].name;
+    const s=songs.find(x=>x.id===queue[qi]);if(s)updateCoverBg(s);});
+  $('sReset').onclick=()=>{S.blur=1.5;S.spk=1;S.res='mid';saveSettingsMM();if(window.mmRelayout)window.mmRelayout();
     const s=songs.find(x=>x.id===queue[qi]);if(s)updateCoverBg(s);openSettings();};
   $('sOk').onclick=closeSheet;
 }
@@ -350,12 +357,12 @@ async function shrinkImage(blob,max=1080){
 }
 async function blurredBg(s){
   // copertina con una sfocatura leggera, per lo sfondo (si calcola una volta sola per brano)
-  const bl=window.mmSettings.blur;if(bl===0)return coverURL(s);
-  const key=s.id+'|'+bl;if(bgCache.has(key))return bgCache.get(key);
-  const im=await loadImg(coverURL(s)),c=document.createElement('canvas');
-  c.width=540;c.height=Math.round(540*Math.max(1.2,innerHeight/Math.max(1,innerWidth)));
+  const bl=window.mmSettings.blur,rs=RES[window.mmSettings.res]||RES.mid;if(bl===0&&!rs.w)return coverURL(s);
+  const key=s.id+'|'+bl+'|'+window.mmSettings.res;if(bgCache.has(key))return bgCache.get(key);
+  const im=await loadImg(coverURL(s)),c=document.createElement('canvas'),cw=rs.w||Math.max(360,im.width);
+  c.width=cw;c.height=Math.round(cw*Math.max(1.2,innerHeight/Math.max(1,innerWidth)));
   const x=c.getContext('2d');x.fillStyle='#0b2a46';x.fillRect(0,0,c.width,c.height);
-  try{x.filter=`blur(${bl}px)`;}catch(e){}
+  try{if(bl>0)x.filter=`blur(${bl*cw/540}px)`;}catch(e){}   // la sfocatura resta uguale a ogni risoluzione
   const k=Math.max(c.width/im.width,c.height/im.height)*1.04,w=im.width*k,h=im.height*k;   // un filo più grande, così i bordi sfocati non si vedono
   x.drawImage(im,(c.width-w)/2,(c.height-h)/2,w,h);
   const d=await new Promise(r=>c.toBlob(bl=>r(bl?URL.createObjectURL(bl):c.toDataURL('image/jpeg',.85)),'image/jpeg',.85));
@@ -742,7 +749,7 @@ function ring(pw=1){
 let bubs=0;
 function bubbles(n){
   const p=spkPos();
-  for(let i=0;i<n&&bubs<24;i++){
+  for(let i=0;i<n&&bubs<((RES[(window.mmSettings||{}).res]||RES.mid).bub);i++){
     const b=document.createElement('div'),r=6+Math.random()*14,d=1.3+Math.random()*1.1;
     b.className='spk-bub';b.style.willChange='transform,opacity';b.style.width=b.style.height=r+'px';
     b.style.setProperty('--x0',(p.cx-r/2+(Math.random()-.5)*p.w*.5)+'px');
